@@ -179,7 +179,7 @@ postgresql_database_{{ k }}_pgbouncer_schema:
 # Use a non-admin user (pgbouncer) that calls SECURITY DEFINER function.
 postgresql_database_{{ k }}_pgbouncer_lookup:
   cmd.script:
-    - source: salt://pgbouncer/files/auth_query.sh
+    - source: salt://postgresql/files/auth_query.sh
     - runas: {{ pgsql.lookup.user }}
     - env:
       - PSQL_ARGS: --no-psqlrc --no-align --no-readline -d {{ k }}
