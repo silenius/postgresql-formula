@@ -7,6 +7,7 @@ BEGIN
     RETURN;
 END;
 \$\$ LANGUAGE plpgsql SECURITY DEFINER;
+ALTER FUNCTION pgbouncer.user_lookup OWNER TO postgres;
 REVOKE ALL ON FUNCTION pgbouncer.user_lookup(text) FROM public, pgbouncer;
 GRANT EXECUTE ON FUNCTION pgbouncer.user_lookup(text) TO pgbouncer;
 EOF
