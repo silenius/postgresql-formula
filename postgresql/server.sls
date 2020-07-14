@@ -147,6 +147,12 @@ postgresql_database_{{ k }}:
     - name: {{ k }}
     - owner: {{ v.owner }}
     - user: {{ pgsql.lookup.user }}
+    {% if v.lc_ctype is defined %}
+    - lc_ctype: {{ v.lc_ctype }}
+    {% endif %}
+    {% if v.template is defined %}
+    - template: {{ v.template }}
+    {% endif %}
     - require:
       - postgres_user: {{ v.owner }}
 
