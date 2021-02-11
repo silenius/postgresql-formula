@@ -57,6 +57,7 @@ postgresql_override_conf:
     - group: {{ pgsql.lookup.user }}
     - makedirs: True
     - mode: 400
+    - dir_mode: 700
     - contents: |
       {% for k,v in pgsql.conf.items() %}
         {{ k }} = '{{ v }}'
