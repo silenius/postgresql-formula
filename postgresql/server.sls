@@ -114,6 +114,7 @@ postgresql_role_{{ k }}:
     - name: {{ k }}
     - login: {{ v.get('login', True) }}
     - createdb: {{ v.get('createdb', False) }}
+    - replication: {{ v.get('replication', False) }}
     - user: {{ pgsql.lookup.user }}
     - password: {{ v.get('password') }}
   #- require:
