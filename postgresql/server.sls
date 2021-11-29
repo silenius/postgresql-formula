@@ -148,6 +148,12 @@ postgresql_database_{{ k }}:
     - name: {{ k }}
     - owner: {{ v.owner }}
     - user: {{ pgsql.lookup.user }}
+    {% if v.encoding is defined %}
+    - encoding: {{ v.encoding }}
+    {% endif %}
+    {% if v.lc_collate is defined %}
+    - lc_collate: {{ v.lc_collate }}
+    {% endif %}
     {% if v.lc_ctype is defined %}
     - lc_ctype: {{ v.lc_ctype }}
     {% endif %}
@@ -171,6 +177,7 @@ postgresql_database_{{ k }}_set_search_path:
 
 {% endif %}
 
+{% if v.pgbouncer|default(True) %}
 # Create a dedicated pgbouncer schema to put the dedicated auth_query function
 postgresql_database_{{ k }}_pgbouncer_schema:
   postgres_schema.present:
@@ -201,6 +208,8 @@ postgresql_database_{{ k }}_pgbouncer_connect:
     - privileges:
       - CONNECT
     - user: {{ pgsql.lookup.user }}
+
+{% endif %}
 
 {% endfor %}
 {% endif %}
