@@ -171,7 +171,7 @@ include:
     - name: psql --no-psqlrc --no-align --no-readline -d postgres -c 'ALTER DATABASE "{{ k }}" SET search_path TO {{ v.search_path|join(',') }}'
     - runas: {{ config.lookup.user }}
     - require:
-      - {{ instance }}_postgres_database: {{ k }}
+      - postgres_database: {{ k }}
 {% endif %} 
 
 {% endif %}
@@ -199,7 +199,7 @@ include:
     - env:
       - PSQL_ARGS: --no-psqlrc --no-align --no-readline -d {{ k }}
     - require:
-      - {{ instance }}_postgres_schema: postgresql_database_{{ k }}_pgbouncer_schema
+      - postgres_schema: pgbouncer
 
 {{ instance }}_postgresql_database_{{ k }}_pgbouncer_connect:
   postgres_privileges.present:
