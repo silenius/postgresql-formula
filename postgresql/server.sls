@@ -162,7 +162,7 @@ include:
     - template: {{ v.template }}
     {% endif %}
     - require:
-      - {{ instance }}_postgres_user: {{ v.owner }}
+      - postgres_user: {{ v.owner }}
 
 {% if v.search_path is defined %}
 # XXX: check if this is correct..
@@ -187,7 +187,7 @@ include:
     - owner: pgbouncer
     - user: {{ config.lookup.user }}
     - require:
-      - {{ instance }}_postgres_user: pgbouncer
+      - postgres_user: pgbouncer
 
 # Note: the query is run inside target database, so the dedicated function
 # needs to be installed into each database.
