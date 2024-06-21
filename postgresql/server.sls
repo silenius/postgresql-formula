@@ -3,120 +3,120 @@ include:
   - zfs.fs
 {%- endif %}
 
-{% set pgsql = salt.pillar.get('postgresql') %}
+{% for instance, config in salt.pillar.get('postgresql:instances', {}).items() %}
 
-pkg_postgresql_server:
+{{ instance }}_pkg_postgresql_server:
   pkg.installed:
-    - name: {{ pgsql.lookup.pkg_server }}
+    - name: {{ config.lookup.pkg_server }}
 
-postgresql_pg_data:
+{{ instance }}_postgresql_pg_data:
   file.directory:
-    - name: {{ pgsql.lookup.pg_data }}
-    - user: {{ pgsql.lookup.user }}
-    - group: {{ pgsql.lookup.user }}
+    - name: {{ config.lookup.pg_data }}
+    - user: {{ config.lookup.user }}
+    - group: {{ config.lookup.user }}
     - mode: 700
     - makdedirs: True
 
-{% if pgsql.conf.log_directory is defined %}
-postgresql_log_directory:
+{% if config.conf.log_directory is defined %}
+{{ instance }}_postgresql_log_directory:
   file.directory:
-    - name: {{ pgsql.conf.log_directory }}
-    - user: {{ pgsql.lookup.user }}
-    - group: {{ pgsql.lookup.user }}
+    - name: {{ config.conf.log_directory }}
+    - user: {{ config.lookup.user }}
+    - group: {{ config.lookup.user }}
     - mode: 755
 {% endif %}
 
-postgresql_sysrc_data_dir:
+{{ instance }}_postgresql_sysrc_data_dir:
   sysrc.managed:
     - name: postgresql_data
-    - value: {{ pgsql.lookup.pg_data }}
+    - value: {{ config.lookup.pg_data }}
     - require:
-      - pkg: pkg_postgresql_server
+      - pkg: {{ instance }}_pkg_postgresql_server
 
-postgresql_init_db:
+{{ instance }}_postgresql_init_db:
   cmd.run:
     - name: service postgresql oneinitdb
     - cwd: /
     - require:
-      - sysrc: postgresql_sysrc_data_dir
-      - pkg: pkg_postgresql_server
-      - file: postgresql_pg_data
+      - sysrc: {{ instance }}_postgresql_sysrc_data_dir
+      - pkg: {{ instance }}_pkg_postgresql_server
+      - file: {{ instance }}_postgresql_pg_data
     - unless:
-      - test -d {{ pgsql.lookup.pg_data | path_join('base') }}
+      - test -d {{ config.lookup.pg_data | path_join('base') }}
 
-postgresql_conf:
+{{ instance }}_postgresql_conf:
   file.append:
-    - name: {{ pgsql.lookup.pg_conf_file }}
+    - name: {{ config.lookup.pg_conf_file }}
     - text:
-      - include_dir = '{{ pgsql.lookup.pg_confd_dir }}'
+      - include_dir = '{{ config.lookup.pg_confd_dir }}'
 
-postgresql_override_conf:
+{{ instance }}_postgresql_override_conf:
   file.managed:
-    - name: {{ pgsql.lookup.pg_confd_dir | path_join('saltstack.conf') }}
-    - user: {{ pgsql.lookup.user }}
-    - group: {{ pgsql.lookup.user }}
+    - name: {{ config.lookup.pg_confd_dir | path_join('saltstack.conf') }}
+    - user: {{ config.lookup.user }}
+    - group: {{ config.lookup.user }}
     - makedirs: True
     - mode: 400
     - dir_mode: 700
     - contents: |
-      {% for k,v in pgsql.conf.items() %}
+      {% for k,v in config.conf.items() %}
         {{ k }} = '{{ v }}'
       {%- endfor %}
-        data_directory = '{{ pgsql.lookup.pg_data }}'
-        hba_file = '{{ pgsql.lookup.pg_hba_file }}'
-        ident_file = '{{ pgsql.lookup.pg_ident_file }}'
+        data_directory = '{{ config.lookup.pg_data }}'
+        hba_file = '{{ config.lookup.pg_hba_file }}'
+        ident_file = '{{ config.lookup.pg_ident_file }}'
     - require:
-      - file: postgresql_conf
+      - file: {{ instance }}_postgresql_conf
 
-postgresql_pghba_conf:
+{{ instance }}_postgresql_pghba_conf:
   file.managed:
-    - name: {{ pgsql.lookup.pg_hba_file }}
-    - user: {{ pgsql.lookup.user }}
-    - group: {{ pgsql.lookup.user }}
+    - name: {{ config.lookup.pg_hba_file }}
+    - user: {{ config.lookup.user }}
+    - group: {{ config.lookup.user }}
     - mode: 600
-    {%- if pgsql.acls is defined %}
+    {%- if config.acls is defined %}
     - source: salt://postgresql/files/pg_hba.conf.jinja
     - template: jinja
     - defaults:
-        acls: {{ pgsql.acls|yaml() }}
+        acls: {{ config.acls|yaml() }}
     {%- endif %}
     - require:
-      - file: postgresql_override_conf
+      - file: {{ instance }}_postgresql_override_conf
 
-postgresql_service:
+{{ instance }}_postgresql_service:
   service.running:
     - name: postgresql
     - enable: True
     - watch:
-      - file: postgresql_override_conf
-      - file: postgresql_pghba_conf
+      - file: {{ instance }}_postgresql_override_conf
+      - file: {{ instance }}_postgresql_pghba_conf
     - require:
-      - sysrc: postgresql_sysrc_data_dir
+      - sysrc: {{ instance }}_postgresql_sysrc_data_dir
 
 #############
 ### ROLES ###
 #############
 
-{% if pgsql.roles is defined %}
-{% for k, v in pgsql.roles.items() %}
+{% if config.roles is defined %}
+{% for k, v in config.roles.items() %}
 
-{% if k != pgsql.lookup.user %}
+{% if k != config.lookup.user %}
 
 {% if v.absent|default(False) %}
-postgresql_role_{{ k }}:
+{{ instance }}_postgresql_role_{{ k }}:
   postgres_user.absent:
     - name: {{ k }}
-    - user: {{ pgsql.lookup.user }}
+    - user: {{ config.lookup.user }}
 
 {% else %}
 
-postgresql_role_{{ k }}:
+{{ instance }}_postgresql_role_{{ k }}:
   postgres_user.present:
     - name: {{ k }}
     - login: {{ v.get('login', True) }}
     - createdb: {{ v.get('createdb', False) }}
     - replication: {{ v.get('replication', False) }}
-    - user: {{ pgsql.lookup.user }}
+    - user: {{ config.lookup.user }}
     - password: {{ v.get('password') }}
   #- require:
     #- service: postgresql_service
@@ -131,24 +131,24 @@ postgresql_role_{{ k }}:
 ### DATABASES ###
 #################
 
-{% if pgsql.databases is defined %}
-{% for k,v in pgsql.databases.items() %}
+{% if config.databases is defined %}
+{% for k,v in config.databases.items() %}
 
 {% if k != 'postgres' %}
 
 {% if v.absent|default(False) %}
-postgresql_database_{{ k }}:
+{{ instance }}_postgresql_database_{{ k }}:
   postgres_database.absent:
     - name: {{ k }}
-    - user: {{ pgsql.lookup.user }}
+    - user: {{ config.lookup.user }}
 
 {% else %}
 
-postgresql_database_{{ k }}:
+{{ instance }}_postgresql_database_{{ k }}:
   postgres_database.present:
     - name: {{ k }}
     - owner: {{ v.owner }}
-    - user: {{ pgsql.lookup.user }}
+    - user: {{ config.lookup.user }}
     {% if v.encoding is defined %}
     - encoding: {{ v.encoding }}
     {% endif %}
@@ -162,16 +162,16 @@ postgresql_database_{{ k }}:
     - template: {{ v.template }}
     {% endif %}
     - require:
-      - postgres_user: {{ v.owner }}
+      - {{ instance }}_postgres_user: {{ v.owner }}
 
 {% if v.search_path is defined %}
 # XXX: check if this is correct..
-postgresql_database_{{ k }}_set_search_path:
+{{ instance }}_postgresql_database_{{ k }}_set_search_path:
   cmd.run:
     - name: psql --no-psqlrc --no-align --no-readline -d postgres -c 'ALTER DATABASE "{{ k }}" SET search_path TO {{ v.search_path|join(',') }}'
-    - runas: {{ pgsql.lookup.user }}
+    - runas: {{ config.lookup.user }}
     - require:
-      - postgres_database: {{ k }}
+      - {{ instance }}_postgres_database: {{ k }}
 {% endif %} 
 
 {% endif %}
@@ -180,35 +180,35 @@ postgresql_database_{{ k }}_set_search_path:
 
 {% if v.pgbouncer|default(True) %}
 # Create a dedicated pgbouncer schema to put the dedicated auth_query function
-postgresql_database_{{ k }}_pgbouncer_schema:
+{{ instance }}_postgresql_database_{{ k }}_pgbouncer_schema:
   postgres_schema.present:
     - dbname: {{ k }}
     - name: pgbouncer
     - owner: pgbouncer
-    - user: {{ pgsql.lookup.user }}
+    - user: {{ config.lookup.user }}
     - require:
-      - postgres_user: pgbouncer
+      - {{ instance }}_postgres_user: pgbouncer
 
 # Note: the query is run inside target database, so the dedicated function
 # needs to be installed into each database.
 # Use a non-admin user (pgbouncer) that calls SECURITY DEFINER function.
-postgresql_database_{{ k }}_pgbouncer_lookup:
+{{ instance }}_postgresql_database_{{ k }}_pgbouncer_lookup:
   cmd.script:
     - source: salt://postgresql/files/auth_query.sh
-    - runas: {{ pgsql.lookup.user }}
+    - runas: {{ config.lookup.user }}
     - env:
       - PSQL_ARGS: --no-psqlrc --no-align --no-readline -d {{ k }}
     - require:
-      - postgres_schema: postgresql_database_{{ k }}_pgbouncer_schema
+      - {{ instance }}_postgres_schema: postgresql_database_{{ k }}_pgbouncer_schema
 
-postgresql_database_{{ k }}_pgbouncer_connect:
+{{ instance }}_postgresql_database_{{ k }}_pgbouncer_connect:
   postgres_privileges.present:
     - name: pgbouncer
     - object_type: database
     - object_name: {{ k }}
     - privileges:
       - CONNECT
-    - user: {{ pgsql.lookup.user }}
+    - user: {{ config.lookup.user }}
 
 {% endif %}
 
