@@ -174,10 +174,6 @@ include:
       - postgres_database: {{ k }}
 {% endif %} 
 
-{% endif %}
-
-{% endif %}
-
 {% if v.pgbouncer|default(True) %}
 # Create a dedicated pgbouncer schema to put the dedicated auth_query function
 {{ instance }}_postgresql_database_{{ k }}_pgbouncer_schema:
@@ -210,6 +206,10 @@ include:
     - privileges:
       - CONNECT
     - user: {{ config.lookup.user }}
+
+{% endif %}
+
+{% endif %}
 
 {% endif %}
 
