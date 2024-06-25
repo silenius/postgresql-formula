@@ -188,6 +188,7 @@ include:
     - user: {{ config.lookup.user }}
     - require:
       - postgres_user: pgbouncer
+      - postgres_database: {{ k }}
 
 # Note: the query is run inside target database, so the dedicated function
 # needs to be installed into each database.
